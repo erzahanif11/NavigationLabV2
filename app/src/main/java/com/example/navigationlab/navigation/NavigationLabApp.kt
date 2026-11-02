@@ -48,7 +48,8 @@ fun NavigationLabApp() {
                 },
                 onOpenAbout = {
                     navController.navigate(Routes.ABOUT)
-                }
+                },
+                onRetry = homeViewModel::loadStudents
             )
         }
 

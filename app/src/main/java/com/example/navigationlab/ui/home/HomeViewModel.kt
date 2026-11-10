@@ -11,18 +11,44 @@ class HomeViewModel(
     var uiState by mutableStateOf(HomeUiState())
         private set
     init { loadStudents() }
+    fun onSearchQueryChange(newQuery: String) {
+        uiState = uiState.copy(searchQuery = newQuery)
+    }
+
     fun loadStudents() {
         uiState = uiState.copy(isLoading = true, errorMessage = null)
         repository.getStudents { result ->
             result
                 .onSuccess { data ->
-                    uiState = HomeUiState(students = data)
+                    uiState = uiState.copy(students = data, isLoading = false)
                 }
                 .onFailure { error ->
-                    uiState = HomeUiState(
-                        errorMessage = error.message ?: "Gagal mengambil data"
+                    uiState = uiState.copy(
+                        errorMessage = error.message ?: "Gagal mengambil data",
+                        isLoading = false
                     )
                 }
+        }
+    }
+
+    fun searchStudents() {
+        val query = uiState.searchQuery.trim()
+        if (query.isEmpty()) {
+            loadStudents()
+        } else {
+            uiState = uiState.copy(isLoading = true, errorMessage = null)
+            repository.searchStudents(query) { result ->
+                result
+                    .onSuccess { data ->
+                        uiState = uiState.copy(students = data, isLoading = false)
+                    }
+                    .onFailure { error ->
+                        uiState = uiState.copy(
+                            errorMessage = error.message ?: "Gagal mengambil data",
+                            isLoading = false
+                        )
+                    }
+            }
         }
     }
 

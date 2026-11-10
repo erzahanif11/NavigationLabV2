@@ -33,7 +33,7 @@ fun DetailScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             when {
                 uiState.isLoading -> {

@@ -3,11 +3,13 @@ package com.example.navigationlab.data.repository
 import com.example.navigationlab.data.model.Student
 import com.example.navigationlab.data.remote.StudentRemoteDataSource
 import com.example.navigationlab.data.remote.dto.toStudent
+
 //import com.example.navigationlab.data.source.StudentLocalDataSource
 
 interface StudentRepository {
     fun getStudents(callback: (Result<List<Student>>) -> Unit)
     fun getStudent(id: Int, callback: (Result<Student>) -> Unit)
+    fun searchStudents(query: String, callback: (Result<List<Student>>) -> Unit)
 }
 
 class DefaultStudentRepository(
@@ -26,6 +28,12 @@ class DefaultStudentRepository(
     ) {
         remoteDataSource.getStudent(id) { result ->
             callback(result.map { it.toStudent() })
+        }
+    }
+
+    override fun searchStudents(query: String, callback: (Result<List<Student>>) -> Unit) {
+        remoteDataSource.searchStudents(query) {
+            result -> callback(result.map { users -> users.map { it.toStudent() } })
         }
     }
 }

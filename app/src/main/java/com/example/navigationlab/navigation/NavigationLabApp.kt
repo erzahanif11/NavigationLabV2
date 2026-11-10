@@ -40,6 +40,8 @@ fun NavigationLabApp() {
             )
             HomeScreen(
                 uiState = homeViewModel.uiState,
+                onSearchQueryChange = homeViewModel::onSearchQueryChange,
+                onSearch = homeViewModel::searchStudents,
                 onOpenDetail = { id ->
                     navController.navigate(Routes.detail(id))
                 },
@@ -49,7 +51,7 @@ fun NavigationLabApp() {
                 onOpenAbout = {
                     navController.navigate(Routes.ABOUT)
                 },
-                onRetry = homeViewModel::loadStudents
+                onRetry = homeViewModel::searchStudents
             )
         }
 

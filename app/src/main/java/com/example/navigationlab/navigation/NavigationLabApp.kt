@@ -2,6 +2,7 @@ package com.example.navigationlab.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -19,6 +20,7 @@ import com.example.navigationlab.ui.screen.AboutScreen
 import com.example.navigationlab.ui.screen.DetailScreen
 import com.example.navigationlab.ui.screen.HomeScreen
 import com.example.navigationlab.ui.screen.ProfileScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun NavigationLabApp() {
@@ -35,13 +37,16 @@ fun NavigationLabApp() {
         startDestination = Routes.HOME
     ) {
         composable(Routes.HOME) {
-            val homeViewModel: HomeViewModel = viewModel(
+            val homeVM: HomeViewModel = viewModel(
                 factory = HomeViewModel.factory(repository)
             )
+            val uiState by homeVM.uiState.collectAsStateWithLifecycle()
+            val searchQuery by homeVM.searchQuery.collectAsStateWithLifecycle()
             HomeScreen(
-                uiState = homeViewModel.uiState,
-                onSearchQueryChange = homeViewModel::onSearchQueryChange,
-                onSearch = homeViewModel::searchStudents,
+                uiState = uiState,
+                searchQuery = searchQuery,
+                onSearchQueryChange = homeVM::onSearchQueryChange,
+                onStudentClick = { id -> navController.navigate(Routes.detail(id)) },
                 onOpenDetail = { id ->
                     navController.navigate(Routes.detail(id))
                 },
@@ -51,25 +56,28 @@ fun NavigationLabApp() {
                 onOpenAbout = {
                     navController.navigate(Routes.ABOUT)
                 },
-                onRetry = homeViewModel::searchStudents
+                onRetry = homeVM::retry,
+                onRefresh = homeVM::retry
             )
         }
 
         composable(
             route = Routes.DETAIL,
-            arguments = listOf(
-                navArgument("studentId") { type = NavType.IntType }
-            )
+            arguments = listOf(navArgument("studentId") { type = NavType.IntType })
         ) { backStackEntry ->
-            val studentId = backStackEntry.arguments?.getInt("studentId") ?: -1
-            val viewModel: DetailViewModel = viewModel(
+            val id = backStackEntry.arguments?.getInt("studentId") ?: return@composable
+
+            val detailVM: DetailViewModel = viewModel(
                 factory = DetailViewModel.factory(repository)
             )
-            LaunchedEffect(studentId) {
-                viewModel.loadStudent(studentId)
+            val uiState by detailVM.uiState.collectAsStateWithLifecycle()
+
+            LaunchedEffect(id) {
+                detailVM.loadStudent(id)
             }
+
             DetailScreen(
-                uiState = viewModel.uiState,
+                uiState = uiState,
                 onBack = { navController.popBackStack() }
             )
         }

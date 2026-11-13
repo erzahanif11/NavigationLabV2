@@ -26,12 +26,14 @@ import com.example.navigationlab.ui.home.HomeUiState
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
+    searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
+    onStudentClick: (Int) -> Unit,
     onOpenDetail: (Int) -> Unit,
     onOpenProfile: () -> Unit,
     onOpenAbout: () -> Unit,
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -39,7 +41,16 @@ fun HomeScreen(
             .padding(24.dp),
         verticalArrangement = spacedBy(12.dp)
     ) {
-        Text("Home", style = MaterialTheme.typography.headlineMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Home", style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = onRefresh){
+                Text("Refresh")
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -47,17 +58,13 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = uiState.searchQuery,
+                value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                label = { Text("Cari siswa") },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
+                label = { Text("Cari profil") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             )
-            Button(
-                onClick = onSearch
-            ) {
-                Text("Cari")
-            }
         }
 
         Box(

@@ -4,50 +4,82 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.example.navigationlab.data.repository.StudentRepository
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
+
 class HomeViewModel(
     private val repository: StudentRepository
 ) : ViewModel() {
-    var uiState by mutableStateOf(HomeUiState())
-        private set
-    init { loadStudents() }
-    fun onSearchQueryChange(newQuery: String) {
-        uiState = uiState.copy(searchQuery = newQuery)
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    init {
+        observeSearch()
     }
 
-    fun loadStudents() {
-        uiState = uiState.copy(isLoading = true, errorMessage = null)
-        repository.getStudents { result ->
-            result
-                .onSuccess { data ->
-                    uiState = uiState.copy(students = data, isLoading = false)
-                }
-                .onFailure { error ->
-                    uiState = uiState.copy(
-                        errorMessage = error.message ?: "Gagal mengambil data",
-                        isLoading = false
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+    }
+
+    @OptIn(FlowPreview::class)
+    private fun observeSearch() {
+        viewModelScope.launch {
+            searchQuery
+                .debounce(500)
+                .distinctUntilChanged()
+                .collectLatest { query ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = true,
+                        errorMessage = null
                     )
+                    try {
+                        val data = if (query.isBlank()) {
+                            repository.getStudents()
+                        } else {
+                            repository.searchStudents(query)
+                        }
+                        _uiState.value = HomeUiState(students = data)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        _uiState.value = HomeUiState(
+                            errorMessage = e.message ?: "Pencarian gagal"
+                        )
+                    }
                 }
         }
     }
 
-    fun searchStudents() {
-        val query = uiState.searchQuery.trim()
-        if (query.isEmpty()) {
-            loadStudents()
-        } else {
-            uiState = uiState.copy(isLoading = true, errorMessage = null)
-            repository.searchStudents(query) { result ->
-                result
-                    .onSuccess { data ->
-                        uiState = uiState.copy(students = data, isLoading = false)
-                    }
-                    .onFailure { error ->
-                        uiState = uiState.copy(
-                            errorMessage = error.message ?: "Gagal mengambil data",
-                            isLoading = false
-                        )
-                    }
+    // Juga berperan sebagai fungsi refresh
+    fun retry() {
+        val query = searchQuery.value
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                val data = if (query.isBlank()) {
+                    repository.getStudents()
+                } else {
+                    repository.searchStudents(query)
+                }
+                _uiState.value = HomeUiState(students = data)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState(
+                    errorMessage = e.message ?: "Request gagal"
+                )
             }
         }
     }

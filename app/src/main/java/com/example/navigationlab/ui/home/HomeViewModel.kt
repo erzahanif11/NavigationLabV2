@@ -5,6 +5,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.navigationlab.data.preferences.UserPreferencesRepository
 import com.example.navigationlab.data.repository.StudentRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,11 +14,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 class HomeViewModel(
-    private val repository: StudentRepository
+    private val repository: StudentRepository,
+    private val preferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -31,10 +34,16 @@ class HomeViewModel(
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+        viewModelScope.launch {
+            preferencesRepository.saveLastSearchQuery(query)
+        }
     }
 
     @OptIn(FlowPreview::class)
     private fun observeSearch() {
+        viewModelScope.launch{
+            _searchQuery.value = preferencesRepository.lastSearchQuery.first()
+        }
         viewModelScope.launch {
             searchQuery
                 .debounce(500)
@@ -85,11 +94,11 @@ class HomeViewModel(
     }
 
     companion object {
-        fun factory(repository: StudentRepository): ViewModelProvider.Factory =
+        fun factory(repository: StudentRepository, preferencesRepository: UserPreferencesRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return HomeViewModel(repository) as T
+                    return HomeViewModel(repository, preferencesRepository) as T
                 }
             }
     }

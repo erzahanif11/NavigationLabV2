@@ -32,6 +32,7 @@ fun HomeScreen(
     onOpenDetail: (Int) -> Unit,
     onOpenProfile: () -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenFavorites: () -> Unit = {},
     onRetry: () -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
@@ -129,6 +130,13 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("About")
+        }
+
+        OutlinedButton(
+            onClick = onOpenFavorites,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Mahasiswa Favorit")
         }
     }
 }
